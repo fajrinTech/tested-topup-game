@@ -5,6 +5,7 @@ import {
   calculateCheckoutTotal,
   createGuestOrder,
   formatIDR,
+  markOrderPaid,
   searchOrders,
   simulateAccountNickname,
   validateAccountInput,
@@ -32,6 +33,11 @@ describe("Indonesian Game Catalog & Rp 1.000 Test Product", () => {
     }
   });
 
+  it("exposes only QRIS, DANA, and ShopeePay as the active payment methods", () => {
+    const methodIds = PAYMENT_METHODS.map((p) => p.id);
+    assert.deepEqual(methodIds, ["qris", "dana", "shopeepay"]);
+  });
+
   it("contains zero forbidden em dash characters across all catalog data", () => {
     const serialized = JSON.stringify({
       GAMES,
@@ -42,7 +48,7 @@ describe("Indonesian Game Catalog & Rp 1.000 Test Product", () => {
   });
 });
 
-describe("Account Validation & Checkout Calculation", () => {
+describe("Account Validation, Pending Transaction Creation & Payment Transition", () => {
   it("requires both User ID and Zone ID for Mobile Legends", () => {
     const mlbb = GAMES.find((g) => g.slug === "mobile-legends")!;
     assert.equal(validateAccountInput(mlbb, { userId: "12345678", zoneId: "" }).valid, false);
@@ -75,25 +81,29 @@ describe("Account Validation & Checkout Calculation", () => {
     assert.deepEqual(totals, { subtotal: 1000, fee: 0, total: 1000 });
   });
 
-  it("formats IDR cleanly and searches guest orders by invoice or account ID", () => {
+  it("creates Pending order with optional email and transitions to Completed via markOrderPaid", () => {
     assert.equal(formatIDR(1000), "Rp 1.000");
     assert.equal(formatIDR(30700), "Rp 30.700");
 
     const mlbb = GAMES.find((g) => g.slug === "mobile-legends")!;
-    const qris = PAYMENT_METHODS.find((p) => p.id === "qris")!;
+    const spay = PAYMENT_METHODS.find((p) => p.id === "shopeepay")!;
     const order = createGuestOrder({
       game: mlbb,
       item: mlbb.items[0],
-      payment: qris,
+      payment: spay,
       targetAccount: "99887766 (1234)",
       nickname: simulateAccountNickname(mlbb, "99887766"),
-      whatsapp: "081234567890",
+      email: "gamer@contoh.id",
     });
 
     assert.equal(order.invoiceId.startsWith("INV-"), true);
-    assert.equal(order.total, 1000);
-    assert.equal(searchOrders([order], order.invoiceId).length, 1);
-    assert.equal(searchOrders([order], "081234567890").length, 1);
-    assert.equal(searchOrders([order], "INV-NOTFOUND").length, 0);
+    assert.equal(order.status, "Pending");
+    assert.equal(order.email, "gamer@contoh.id");
+    assert.equal(order.paymentFlow, "ewallet_redirect");
+    assert.equal(searchOrders([order], "gamer@contoh.id").length, 1);
+
+    const updatedList = markOrderPaid([order], order.invoiceId);
+    assert.equal(updatedList[0].status, "Completed");
+    assert.equal(Boolean(updatedList[0].paidAt), true);
   });
 });

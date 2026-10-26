@@ -1,5 +1,7 @@
 import type { GameConfig, PaymentMethod, TopupItem } from "../data/games.ts";
 
+export const STORAGE_KEY = "nexatopup_guest_orders_v1";
+
 export interface AccountInput {
   userId: string;
   zoneId?: string;
@@ -11,6 +13,8 @@ export interface ValidationResult {
   error?: string;
   formattedTarget?: string;
 }
+
+export type PaymentFlowType = "qris_scan" | "ewallet_redirect";
 
 export interface GuestOrder {
   invoiceId: string;
@@ -26,12 +30,15 @@ export interface GuestOrder {
   nickname: string;
   paymentId: string;
   paymentName: string;
+  paymentFlow: PaymentFlowType;
   subtotal: number;
   fee: number;
   total: number;
+  email?: string;
   whatsapp?: string;
   status: "Completed" | "Pending";
   createdAt: string;
+  paidAt?: string;
   isTestProduct: boolean;
 }
 
@@ -155,12 +162,16 @@ export interface CreateOrderParams {
   rawZoneId?: string;
   rawServer?: string;
   nickname: string;
+  email?: string;
   whatsapp?: string;
 }
 
 export function createGuestOrder(params: CreateOrderParams): GuestOrder {
   const { subtotal, fee, total } = calculateCheckoutTotal(params.item, params.payment);
   const rand = Math.floor(100000 + Math.random() * 900000);
+  const paymentFlow: PaymentFlowType =
+    params.payment.id === "qris" ? "qris_scan" : "ewallet_redirect";
+
   return {
     invoiceId: `INV-2026-${rand}`,
     gameSlug: params.game.slug,
@@ -175,14 +186,25 @@ export function createGuestOrder(params: CreateOrderParams): GuestOrder {
     nickname: params.nickname,
     paymentId: params.payment.id,
     paymentName: params.payment.name,
+    paymentFlow,
     subtotal,
     fee,
     total,
+    email: params.email?.trim() || undefined,
     whatsapp: params.whatsapp?.trim() || undefined,
-    status: "Completed",
+    status: "Pending",
     createdAt: new Date().toISOString(),
     isTestProduct: Boolean(params.item.isTestProduct),
   };
+}
+
+export function markOrderPaid(orders: GuestOrder[], invoiceId: string): GuestOrder[] {
+  const now = new Date().toISOString();
+  return orders.map((order) =>
+    order.invoiceId === invoiceId
+      ? { ...order, status: "Completed", paidAt: order.paidAt || now }
+      : order
+  );
 }
 
 export function searchOrders(orders: GuestOrder[], query: string): GuestOrder[] {
@@ -193,6 +215,7 @@ export function searchOrders(orders: GuestOrder[], query: string): GuestOrder[] 
       o.invoiceId.toLowerCase().includes(q) ||
       o.targetAccount.toLowerCase().includes(q) ||
       o.gameName.toLowerCase().includes(q) ||
+      (o.email && o.email.toLowerCase().includes(q)) ||
       (o.whatsapp && o.whatsapp.toLowerCase().includes(q))
   );
 }

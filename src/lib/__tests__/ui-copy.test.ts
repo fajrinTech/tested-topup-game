@@ -17,17 +17,20 @@ function walkFiles(dir: string): string[] {
   return out;
 }
 
-describe("Mobile-First Marketplace UI & Antislop Compliance", () => {
-  it("renders TopupApp, GameCheckoutModal, and InvoiceModal components", () => {
+describe("Mobile-First Marketplace UI, Transaction Pages & Antislop Compliance", () => {
+  it("renders TopupApp, GameCheckoutModal, Dedicated Transaction Page, and External E-Wallet Page", () => {
     const requiredFiles = [
       "src/components/TopupApp.tsx",
       "src/components/GameCheckoutModal.tsx",
       "src/components/InvoiceModal.tsx",
       "src/app/page.tsx",
+      "src/app/transaction/[invoiceId]/page.tsx",
+      "src/app/pay/[provider]/[invoiceId]/page.tsx",
+      "src/app/api/transactions/route.ts",
     ];
     for (const rel of requiredFiles) {
       const full = path.join(process.cwd(), rel);
-      assert.equal(fs.existsSync(full), true, `Missing required UI file: ${rel}`);
+      assert.equal(fs.existsSync(full), true, `Missing required UI/Route file: ${rel}`);
     }
   });
 

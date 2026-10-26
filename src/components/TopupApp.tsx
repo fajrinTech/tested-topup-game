@@ -27,11 +27,9 @@ import {
   PAYMENT_METHODS,
   type GameConfig,
 } from "@/data/games";
-import { formatIDR, searchOrders, type GuestOrder } from "@/lib/topup";
+import { STORAGE_KEY, formatIDR, searchOrders, type GuestOrder } from "@/lib/topup";
 import { GameCheckoutModal } from "@/components/GameCheckoutModal";
 import { InvoiceModal } from "@/components/InvoiceModal";
-
-const STORAGE_KEY = "nexatopup_guest_orders_v1";
 
 type ActiveTab = "beranda" | "eksplor" | "riwayat";
 type CategoryFilter =
@@ -62,19 +60,28 @@ export function TopupApp() {
   const [activeInvoice, setActiveInvoice] = useState<GuestOrder | null>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          setOrders(parsed);
+    const loadFromStorage = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            setOrders(parsed);
+          }
         }
+      } catch {
+        // Ignore storage access errors in restricted environments.
+      } finally {
+        setOrdersLoaded(true);
       }
-    } catch {
-      // Ignore storage access errors in restricted environments.
-    } finally {
-      setOrdersLoaded(true);
-    }
+    };
+    loadFromStorage();
+    window.addEventListener("storage", loadFromStorage);
+    window.addEventListener("focus", loadFromStorage);
+    return () => {
+      window.removeEventListener("storage", loadFromStorage);
+      window.removeEventListener("focus", loadFromStorage);
+    };
   }, []);
 
   useEffect(() => {
@@ -113,11 +120,8 @@ export function TopupApp() {
     });
   };
 
-  const handleOrderSuccess = (order: GuestOrder) => {
-    const updated = [order, ...orders];
-    saveOrders(updated);
-    setCheckoutState({ game: null });
-    setActiveInvoice(order);
+  const handleOrderCreated = (order: GuestOrder) => {
+    setOrders((prev) => [order, ...prev]);
   };
 
   const handleRepeatOrder = (order: GuestOrder) => {
@@ -1100,7 +1104,7 @@ export function TopupApp() {
         initialZoneId={checkoutState.initialZoneId}
         initialServer={checkoutState.initialServer}
         onClose={() => setCheckoutState({ game: null })}
-        onOrderSuccess={handleOrderSuccess}
+        onOrderCreated={handleOrderCreated}
       />
 
       <InvoiceModal

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Check, Copy, Receipt, RotateCcw, ShieldCheck, X } from "lucide-react";
+import Link from "next/link";
+import { Check, Clock, Copy, ExternalLink, Receipt, RotateCcw, ShieldCheck, X } from "lucide-react";
 import { formatIDR, type GuestOrder } from "@/lib/topup";
 
 interface InvoiceModalProps {
@@ -46,6 +47,8 @@ export function InvoiceModal({
     minute: "2-digit",
   });
 
+  const isCompleted = order.status === "Completed";
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-4"
@@ -65,7 +68,7 @@ export function InvoiceModal({
             </div>
             <div>
               <h2 id="invoice-modal-title" className="text-base font-bold">
-                Bukti Transaksi Top-Up
+                Ringkasan Transaksi
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400">
                 Tersimpan otomatis di perangkat ini (Tanpa Login)
@@ -87,10 +90,17 @@ export function InvoiceModal({
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
               Nomor Invoice
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-2.5 py-0.5 text-xs font-semibold text-white">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Berhasil Instan
-            </span>
+            {isCompleted ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-2.5 py-0.5 text-xs font-semibold text-white">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Berhasil
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+                <Clock className="h-3.5 w-3.5" />
+                Menunggu Pembayaran
+              </span>
+            )}
           </div>
           <div className="mt-1.5 flex items-center justify-between gap-2">
             <code className="font-mono text-sm font-bold text-slate-900 dark:text-white">
@@ -145,7 +155,7 @@ export function InvoiceModal({
             </dd>
           </div>
           <div className="flex justify-between gap-2">
-            <dt className="text-slate-600 dark:text-slate-400">Nickname Terverifikasi</dt>
+            <dt className="text-slate-600 dark:text-slate-400">Nickname</dt>
             <dd className="font-semibold text-slate-900 dark:text-white">
               {order.nickname}
             </dd>
@@ -156,31 +166,21 @@ export function InvoiceModal({
               {order.paymentName}
             </dd>
           </div>
+          {order.email && (
+            <div className="flex justify-between gap-2">
+              <dt className="text-slate-600 dark:text-slate-400">Email Bukti</dt>
+              <dd className="font-mono text-xs text-slate-800 dark:text-slate-200">
+                {order.email}
+              </dd>
+            </div>
+          )}
           <div className="flex justify-between gap-2">
             <dt className="text-slate-600 dark:text-slate-400">Waktu Transaksi</dt>
             <dd className="text-slate-800 dark:text-slate-200">{formattedDate}</dd>
           </div>
-          {order.whatsapp && (
-            <div className="flex justify-between gap-2">
-              <dt className="text-slate-600 dark:text-slate-400">Kontak WhatsApp</dt>
-              <dd className="font-mono text-slate-800 dark:text-slate-200">
-                {order.whatsapp}
-              </dd>
-            </div>
-          )}
           <div className="border-t border-slate-200 pt-2.5 dark:border-slate-800">
-            <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-              <span>Harga Produk</span>
-              <span className="tabular-price">{formatIDR(order.subtotal)}</span>
-            </div>
-            <div className="mt-1 flex justify-between text-xs text-slate-600 dark:text-slate-400">
-              <span>Biaya Admin Saluran</span>
-              <span className="tabular-price">
-                {order.fee === 0 ? "Rp 0 (Gratis)" : formatIDR(order.fee)}
-              </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-base font-extrabold text-slate-900 dark:text-white">
-              <span>Total Dibayar</span>
+            <div className="mt-1 flex items-center justify-between text-base font-extrabold text-slate-900 dark:text-white">
+              <span>Total Tagihan</span>
               <span className="tabular-price text-[#5B4DFF] dark:text-indigo-400">
                 {formatIDR(order.total)}
               </span>
@@ -189,21 +189,32 @@ export function InvoiceModal({
         </dl>
 
         <div className="mt-5 grid grid-cols-2 gap-2.5">
-          <button
-            type="button"
-            onClick={() => onRepeatOrder(order)}
-            className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Beli Lagi
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-[#5B4DFF] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#4B3DE8]"
-          >
-            Selesai
-          </button>
+          {!isCompleted ? (
+            <Link
+              href={`/transaction/${order.invoiceId}`}
+              className="col-span-2 inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-2xl bg-[#5B4DFF] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#4B3DE8]"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Buka Halaman Pembayaran
+            </Link>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => onRepeatOrder(order)}
+                className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Beli Lagi
+              </button>
+              <Link
+                href={`/transaction/${order.invoiceId}`}
+                className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-2xl bg-[#5B4DFF] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#4B3DE8]"
+              >
+                Halaman Transaksi
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </div>
