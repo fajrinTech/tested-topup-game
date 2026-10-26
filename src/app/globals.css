@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  --bg-canvas: #f4f5fa;
+  --bg-card: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --accent-indigo: #5b4dff;
+  --accent-indigo-hover: #4b3de8;
+  --border-subtle: #e2e8f0;
+}
+
+.dark {
+  --bg-canvas: #0b0f19;
+  --bg-card: #131b2e;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-indigo: #635bff;
+  --accent-indigo-hover: #7a73ff;
+  --border-subtle: #1e293b;
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.tabular-price {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ensure clear keyboard focus rings per Antislop R-32 */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent-indigo);
+  outline-offset: 2px;
+}
