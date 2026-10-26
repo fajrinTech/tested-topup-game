@@ -40,6 +40,11 @@ export interface GuestOrder {
   createdAt: string;
   paidAt?: string;
   isTestProduct: boolean;
+  qrisString?: string;
+  paymentLink?: string | null;
+  merchantName?: string;
+  merchantNmid?: string;
+  expiresAt?: string;
 }
 
 export function formatIDR(amount: number): string {

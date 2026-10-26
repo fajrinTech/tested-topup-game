@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import QRCode from "qrcode";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -15,9 +16,8 @@ import {
   Loader2,
   QrCode,
   Radio,
-  ShieldCheck,
+  RefreshCw,
   Sparkles,
-  Zap,
 } from "lucide-react";
 import {
   STORAGE_KEY,
@@ -34,6 +34,8 @@ export default function TransactionDetailPage() {
   const [loaded, setLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [validatingPayment, setValidatingPayment] = useState(false);
+  const [manualChecking, setManualChecking] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [countdownSec, setCountdownSec] = useState(900);
 
   const syncOrderFromStorageAndServer = useCallback(async () => {
@@ -58,20 +60,33 @@ export default function TransactionDetailPage() {
       if (res.ok) {
         const data = await res.json();
         const serverOrder: GuestOrder | null = data?.order || null;
-        if (
-          serverOrder &&
-          serverOrder.status === "Completed" &&
-          localFound &&
-          localFound.status !== "Completed"
-        ) {
+        const isPaidOnGateway =
+          data?.gatewayStatus === "paid" ||
+          serverOrder?.status === "Completed";
+
+        if (isPaidOnGateway && localFound && localFound.status !== "Completed") {
           const raw = localStorage.getItem(STORAGE_KEY);
           const list: GuestOrder[] = raw ? JSON.parse(raw) : [];
           const updatedList = markOrderPaid(list, invoiceId);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
           localFound =
-            updatedList.find((o) => o.invoiceId === invoiceId) || serverOrder;
+            updatedList.find((o) => o.invoiceId === invoiceId) ||
+            serverOrder ||
+            localFound;
         } else if (!localFound && serverOrder) {
           localFound = serverOrder;
+        } else if (localFound && serverOrder) {
+          localFound = {
+            ...localFound,
+            qrisString: localFound.qrisString || serverOrder.qrisString,
+            paymentLink:
+              localFound.paymentLink !== undefined
+                ? localFound.paymentLink
+                : serverOrder.paymentLink,
+            merchantName: localFound.merchantName || serverOrder.merchantName,
+            merchantNmid: localFound.merchantNmid || serverOrder.merchantNmid,
+            expiresAt: localFound.expiresAt || serverOrder.expiresAt,
+          };
         }
       }
     } catch {
@@ -86,7 +101,7 @@ export default function TransactionDetailPage() {
         localFound.status === "Completed"
       ) {
         setValidatingPayment(true);
-        setTimeout(() => setValidatingPayment(false), 700);
+        setTimeout(() => setValidatingPayment(false), 800);
       }
       return localFound;
     });
@@ -98,7 +113,7 @@ export default function TransactionDetailPage() {
 
     const interval = setInterval(() => {
       syncOrderFromStorageAndServer();
-    }, 1200);
+    }, 2500);
 
     const handleStorageOrFocus = () => {
       syncOrderFromStorageAndServer();
@@ -117,10 +132,39 @@ export default function TransactionDetailPage() {
   }, [syncOrderFromStorageAndServer]);
 
   useEffect(() => {
+    if (!order?.qrisString) {
+      setQrDataUrl(null);
+      return;
+    }
+    QRCode.toDataURL(order.qrisString, {
+      width: 240,
+      margin: 2,
+      color: {
+        dark: "#0F172A",
+        light: "#FFFFFF",
+      },
+    })
+      .then((url) => setQrDataUrl(url))
+      .catch(() => setQrDataUrl(null));
+  }, [order?.qrisString]);
+
+  useEffect(() => {
     if (!order || order.status === "Completed") return;
-    const timer = setInterval(() => {
-      setCountdownSec((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
+
+    const updateTimer = () => {
+      if (order.expiresAt) {
+        const diff = Math.max(
+          0,
+          Math.floor((new Date(order.expiresAt).getTime() - Date.now()) / 1000)
+        );
+        setCountdownSec(diff);
+      } else {
+        setCountdownSec((prev) => (prev > 0 ? prev - 1 : 0));
+      }
+    };
+
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
     return () => clearInterval(timer);
   }, [order]);
 
@@ -135,27 +179,10 @@ export default function TransactionDetailPage() {
     }
   };
 
-  const handleTriggerQrisWebhook = async () => {
-    if (!order) return;
-    setValidatingPayment(true);
-    setTimeout(async () => {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        const list: GuestOrder[] = raw ? JSON.parse(raw) : [];
-        const updatedList = markOrderPaid(list, order.invoiceId);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
-        const found = updatedList.find((o) => o.invoiceId === order.invoiceId);
-        if (found) setOrder(found);
-      } catch {
-        // Ignore storage write errors.
-      }
-      await fetch("/api/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark_paid", invoiceId: order.invoiceId }),
-      }).catch(() => {});
-      setValidatingPayment(false);
-    }, 650);
+  const handleManualCheckPayment = async () => {
+    setManualChecking(true);
+    await syncOrderFromStorageAndServer();
+    setTimeout(() => setManualChecking(false), 500);
   };
 
   const minutes = String(Math.floor(countdownSec / 60)).padStart(2, "0");
@@ -195,7 +222,8 @@ export default function TransactionDetailPage() {
 
   const isCompleted = order.status === "Completed";
   const isQris = order.paymentId === "qris";
-  const isShopeePay = order.paymentId === "shopeepay";
+  const shopeeTargetHref =
+    order.paymentLink || `/pay/shopeepay/${order.invoiceId}`;
 
   return (
     <div className="min-h-dvh bg-[#F4F5FA] pb-16 text-slate-900 dark:bg-[#0B0F19] dark:text-slate-100">
@@ -378,7 +406,7 @@ export default function TransactionDetailPage() {
               </div>
             </section>
 
-            {/* Payment Action Area: QRIS vs ShopeePay / DANA */}
+            {/* Payment Action Area: QRIS vs ShopeePay */}
             {isQris ? (
               /* ---------------- FLOW 1: QRIS SCAN & AUTO-WAIT ---------------- */
               <section className="rounded-3xl bg-white p-5 shadow-xs sm:p-6 dark:bg-slate-900">
@@ -412,11 +440,22 @@ export default function TransactionDetailPage() {
                         GPN
                       </span>
                     </div>
-                    <div className="flex h-52 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
-                      <QrCode className="h-40 w-40 text-slate-900 dark:text-white" />
+                    <div className="flex h-56 w-56 items-center justify-center rounded-2xl border border-slate-200 bg-white p-2 dark:border-slate-800">
+                      {qrDataUrl ? (
+                        <img
+                          src={qrDataUrl}
+                          alt={`Kode QRIS ${order.invoiceId}`}
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <QrCode className="h-40 w-40 text-slate-900" />
+                      )}
                     </div>
-                    <p className="mt-2.5 font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
-                      NMID: ID2026NEXATOPUP • {order.invoiceId}
+                    <p className="mt-2.5 text-xs font-extrabold text-slate-900 dark:text-white">
+                      Merchant: {order.merchantName || "Zeff"}
+                    </p>
+                    <p className="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                      NMID: {order.merchantNmid || "ID1026593811353"} • {order.invoiceId}
                     </p>
                   </div>
 
@@ -427,31 +466,26 @@ export default function TransactionDetailPage() {
                         Sistem Sedang Menunggu Pembayaran Anda...
                       </p>
                       <p className="mt-0.5">
-                        Jangan tutup halaman ini. Begitu pembayaran QRIS terdeteksi oleh gateway, halaman ini akan langsung berubah menjadi Sukses secara otomatis.
+                        Jangan tutup halaman ini. Begitu pembayaran QRIS terdeteksi oleh gateway OstraPay, halaman ini akan langsung berubah menjadi Sukses secara otomatis.
                       </p>
                     </div>
                   </div>
 
-                  {/* Sandbox Testing Button (Simulates API Key Webhook callback) */}
-                  <div className="mt-5 w-full max-w-md rounded-2xl border border-dashed border-emerald-600/50 bg-emerald-50/70 p-4 text-left dark:border-emerald-700 dark:bg-emerald-950/30">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-extrabold text-emerald-900 dark:text-emerald-300">
-                        Panel Simulasi Webhook (Sebelum API Key Dipasang)
-                      </span>
-                      <span className="rounded-md bg-emerald-700 px-2 py-0.5 text-[10px] font-bold text-white">
-                        Sandbox
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-200">
-                      Klik tombol di bawah untuk mensimulasikan user selesai scan QRIS dan webhook pembayaran masuk ke server:
-                    </p>
+                  <div className="mt-4 w-full max-w-md">
                     <button
                       type="button"
-                      onClick={handleTriggerQrisWebhook}
-                      className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-xs hover:bg-emerald-800 sm:text-sm"
+                      onClick={handleManualCheckPayment}
+                      disabled={manualChecking}
+                      className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold text-slate-800 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     >
-                      <Zap className="h-4 w-4" />
-                      Simulasikan Scan QRIS Berhasil ({formatIDR(order.total)})
+                      <RefreshCw
+                        className={`h-4 w-4 ${manualChecking ? "animate-spin text-[#5B4DFF]" : ""}`}
+                      />
+                      <span>
+                        {manualChecking
+                          ? "Mengecek Mutasi Pembayaran..."
+                          : "Saya Sudah Scan, Cek Status Pembayaran"}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -505,8 +539,8 @@ export default function TransactionDetailPage() {
 
                 {/* Prominent Orange ShopeePay Button */}
                 <div className="pt-1">
-                  <Link
-                    href={`/pay/shopeepay/${order.invoiceId}`}
+                  <a
+                    href={shopeeTargetHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-2xl bg-[#EE4D2D] px-6 py-3.5 text-sm font-black text-white shadow-md transition-transform hover:bg-[#D73211] active:scale-[0.99] sm:text-base"
@@ -520,23 +554,38 @@ export default function TransactionDetailPage() {
                       Bayar dengan ShopeePay ({formatIDR(order.total)})
                     </span>
                     <ExternalLink className="h-4 w-4" />
-                  </Link>
+                  </a>
                   <p className="mt-2 text-center text-[11px] text-slate-500 dark:text-slate-400">
                     Membuka halaman pembayaran ShopeePay di tab baru agar Anda mudah kembali ke halaman transaksi ini.
                   </p>
                 </div>
 
-                {/* Live Waiting Listener Status */}
-                <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3.5 text-xs text-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
-                  <Loader2 className="h-5 w-5 shrink-0 animate-spin text-[#5B4DFF]" />
-                  <div>
-                    <p className="font-bold text-slate-900 dark:text-white">
-                      Menunggu Anda kembali setelah membayar di ShopeePay...
-                    </p>
-                    <p className="mt-0.5">
-                      Halaman ini memantau status pembayaran secara otomatis. Begitu Anda selesai bayar dan kembali ke tab ini, status akan langsung tervalidasi.
-                    </p>
+                {/* Live Waiting Listener Status + Manual Check Button */}
+                <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-3.5 text-xs text-slate-700 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-800/70 dark:text-slate-300">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 shrink-0 animate-spin text-[#5B4DFF]" />
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">
+                        Menunggu Anda kembali setelah membayar di ShopeePay...
+                      </p>
+                      <p className="mt-0.5">
+                        Halaman ini memantau status pembayaran secara otomatis begitu Anda kembali ke tab ini.
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleManualCheckPayment}
+                    disabled={manualChecking}
+                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-extrabold text-slate-800 hover:bg-slate-100 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  >
+                    <RefreshCw
+                      className={`h-3.5 w-3.5 ${manualChecking ? "animate-spin text-[#5B4DFF]" : ""}`}
+                    />
+                    <span>
+                      {manualChecking ? "Mengecek..." : "Cek Status"}
+                    </span>
+                  </button>
                 </div>
               </section>
             )}

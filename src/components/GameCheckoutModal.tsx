@@ -144,7 +144,7 @@ export function GameCheckoutModal({
     }, 220);
   };
 
-  const handlePayNow = (e: React.FormEvent) => {
+  const handlePayNow = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = validateAccountInput(game, { userId, zoneId, server });
     if (!res.valid || !res.formattedTarget) {
@@ -161,7 +161,7 @@ export function GameCheckoutModal({
     const finalNickname = verifiedNickname || simulateAccountNickname(game, userId);
     setVerifiedNickname(finalNickname);
 
-    const newOrder = createGuestOrder({
+    const draftOrder = createGuestOrder({
       game,
       item: selectedItem,
       payment: selectedPayment,
@@ -173,33 +173,47 @@ export function GameCheckoutModal({
       email: cleanEmail || undefined,
     });
 
+    setVerifyingStage("checking_account");
+    await new Promise((r) => setTimeout(r, 350));
+    setVerifyingStage("creating_invoice");
+
+    let finalOrder: GuestOrder = draftOrder;
+    try {
+      const apiRes = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create", order: draftOrder }),
+      });
+      const apiData = await apiRes.json();
+      if (!apiRes.ok || !apiData.ok) {
+        setVerifyingStage("idle");
+        setValidationError(
+          apiData.error || "Gagal membuat tagihan pembayaran ke OstraPay Gateway."
+        );
+        return;
+      }
+      if (apiData.order) {
+        finalOrder = apiData.order as GuestOrder;
+      }
+    } catch {
+      // Fallback to draftOrder if offline during local preview.
+    }
+
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const existing: GuestOrder[] = raw ? JSON.parse(raw) : [];
-      const updated = [newOrder, ...existing];
+      const updated = [finalOrder, ...existing.filter((o) => o.invoiceId !== finalOrder.invoiceId)];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     } catch {
       // Ignore storage quota issues.
     }
 
-    fetch("/api/transactions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "create", order: newOrder }),
-    }).catch(() => {});
+    onOrderCreated?.(finalOrder);
 
-    onOrderCreated?.(newOrder);
-
-    setVerifyingStage("checking_account");
+    setVerifyingStage("redirecting");
     setTimeout(() => {
-      setVerifyingStage("creating_invoice");
-    }, 450);
-    setTimeout(() => {
-      setVerifyingStage("redirecting");
-    }, 900);
-    setTimeout(() => {
-      router.push(`/transaction/${newOrder.invoiceId}`);
-    }, 1300);
+      router.push(`/transaction/${finalOrder.invoiceId}`);
+    }, 350);
   };
 
   return (
