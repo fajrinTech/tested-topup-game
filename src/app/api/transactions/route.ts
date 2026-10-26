@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
               order_id: order.invoiceId,
               amount: order.total,
               customer_name: `${order.nickname} (${order.targetAccount})`,
+              payment_method: order.paymentId || "qris",
               items: [
                 {
                   id: order.itemId,
