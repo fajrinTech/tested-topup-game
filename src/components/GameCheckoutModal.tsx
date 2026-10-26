@@ -550,7 +550,7 @@ export function GameCheckoutModal({
             </div>
           </section>
 
-          {/* Step 3: Payment Methods (QRIS, DANA, ShopeePay) */}
+          {/* Step 3: Payment Methods (QRIS & ShopeePay with Official Logos) */}
           <section className="rounded-2xl bg-white p-4 shadow-xs dark:bg-slate-900">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -558,49 +558,45 @@ export function GameCheckoutModal({
                   3
                 </span>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Pilih Metode Pembayaran (QRIS / E-Wallet)
+                  Pilih Metode Pembayaran
                 </h3>
               </div>
               <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                Verifikasi Otomatis
+                QRIS & ShopeePay Resmi
               </span>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-2.5">
+            <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {PAYMENT_METHODS.map((method) => {
                 const active = selectedPayment.id === method.id;
                 const calc = calculateCheckoutTotal(selectedItem, method);
-                const badgeBg =
-                  method.id === "shopeepay"
-                    ? "bg-[#EE4D2D]"
-                    : method.id === "dana"
-                    ? "bg-[#118EEA]"
-                    : "bg-slate-900 dark:bg-indigo-600";
                 return (
                   <button
                     key={method.id}
                     type="button"
                     onClick={() => setSelectedPaymentId(method.id)}
-                    className={`flex min-h-[64px] items-center justify-between rounded-2xl border p-3.5 text-left transition-colors ${
+                    className={`flex min-h-[72px] items-center justify-between gap-3 rounded-2xl border p-3.5 text-left transition-colors ${
                       active
                         ? "border-2 border-[#5B4DFF] bg-indigo-50/60 dark:border-indigo-400 dark:bg-indigo-950/40"
                         : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950"
                     }`}
                   >
-                    <div className="min-w-0 pr-2">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`rounded-lg px-2.5 py-0.5 font-mono text-[11px] font-bold text-white ${badgeBg}`}
-                        >
-                          {method.codeLabel}
-                        </span>
-                        <span className="truncate text-xs font-bold text-slate-900 sm:text-sm dark:text-white">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-12 w-14 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white p-1.5 shadow-2xs">
+                        <img
+                          src={method.logoImage}
+                          alt={method.name}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block truncate text-sm font-extrabold text-slate-900 dark:text-white">
                           {method.name}
                         </span>
+                        <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-slate-600 dark:text-slate-400">
+                          {method.settlementText}
+                        </p>
                       </div>
-                      <p className="mt-1 truncate text-[11px] text-slate-600 dark:text-slate-400">
-                        {method.settlementText}
-                      </p>
                     </div>
                     <div className="shrink-0 text-right">
                       <span className="tabular-price block text-sm font-extrabold text-slate-900 dark:text-white">
@@ -608,7 +604,7 @@ export function GameCheckoutModal({
                       </span>
                       <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
                         {calc.fee === 0
-                          ? "Bebas Biaya Admin"
+                          ? "Bebas Admin"
                           : `+Admin ${formatIDR(calc.fee)}`}
                       </span>
                     </div>

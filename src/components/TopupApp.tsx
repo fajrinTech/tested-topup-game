@@ -161,10 +161,6 @@ export function TopupApp() {
     return searchOrders(orders, invoiceSearchQuery);
   }, [orders, invoiceSearchQuery]);
 
-  const totalSpentIDR = useMemo(() => {
-    return orders.reduce((acc, o) => acc + o.total, 0);
-  }, [orders]);
-
   return (
     <div className="min-h-dvh bg-[#F4F5FA] pb-28 text-slate-900 transition-colors dark:bg-[#0B0F19] dark:text-slate-100">
       {/* Top Bar */}
@@ -270,28 +266,47 @@ export function TopupApp() {
                 />
               </div>
 
-              {/* Hero Promo Card (Adapted from Reference's Purple Balance Card for Guest Top-Up) */}
+              {/* Direct Top-Up Banner (No Wallet Balance / Pure QRIS & ShopeePay) */}
               <section
-                aria-label="Produk Testing Rp 1.000"
+                aria-label="Informasi Pembayaran Langsung QRIS & ShopeePay"
                 className="relative overflow-hidden rounded-3xl bg-[#5B4DFF] p-5 text-white shadow-md"
               >
                 <div className="flex items-center justify-between text-xs font-semibold tracking-wider text-indigo-100 uppercase">
-                  <span>TESTING PRODUCT TERSEDIA</span>
-                  <span className="font-mono">NEXATOPUP • ID</span>
+                  <span>DIRECT TOP-UP • TANPA LOGIN</span>
+                  <span className="font-mono">INSTAN 24 JAM</span>
                 </div>
 
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="tabular-price text-3xl font-black tracking-tight sm:text-4xl">
-                    Rp 1.000
-                  </span>
-                  <span className="rounded-lg bg-white/20 px-2 py-0.5 text-xs font-bold text-white">
-                    Semua 6 Game
-                  </span>
-                </div>
+                <h1 className="mt-2 text-xl font-black tracking-tight sm:text-2xl">
+                  Top-Up Game Langsung via QRIS & ShopeePay
+                </h1>
 
                 <p className="mt-1.5 text-xs text-indigo-100 sm:text-sm">
-                  Checkout instan tanpa login. Bebas biaya admin menggunakan QRIS & E-Wallet lokal.
+                  Tanpa deposit saldo dompet dan tanpa registrasi akun. Pilih game, masukkan ID, lalu bayar langsung per transaksi.
                 </p>
+
+                {/* Official QRIS & ShopeePay Logo Pills */}
+                <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                  <div className="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-2xs">
+                    <img
+                      src="/payments/qris.svg"
+                      alt="QRIS"
+                      className="h-5 w-auto object-contain"
+                    />
+                    <span className="text-[11px] font-extrabold text-slate-900">
+                      Scan Semua Bank & E-Wallet
+                    </span>
+                  </div>
+                  <div className="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-2xs">
+                    <img
+                      src="/payments/shopeepay.png"
+                      alt="ShopeePay"
+                      className="h-5 w-5 rounded-md object-contain"
+                    />
+                    <span className="text-[11px] font-extrabold text-slate-900">
+                      ShopeePay
+                    </span>
+                  </div>
+                </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   <button
@@ -302,7 +317,7 @@ export function TopupApp() {
                     className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-extrabold text-[#5B4DFF] hover:bg-indigo-50"
                   >
                     <Zap className="h-3.5 w-3.5" />
-                    Uji Rp 1.000
+                    Testing Produk
                   </button>
                   <button
                     type="button"
@@ -858,25 +873,23 @@ export function TopupApp() {
               </span>
             </div>
 
-            {/* Guest Summary Card (Matching Reference Phone 3 Purple Card) */}
+            {/* Invoice Tracker Card (No Balance / Pure Invoice Lookup) */}
             <section className="rounded-3xl bg-[#5B4DFF] p-5 text-white shadow-md">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold tracking-wider text-indigo-100 uppercase">
-                  TOTAL TRANSAKSI PERANGKAT INI
+                  LACAK STATUS PESANAN
                 </span>
                 <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white">
-                  Guest Mode
+                  {orders.length} Transaksi Tersimpan
                 </span>
               </div>
 
-              <div className="mt-2 flex items-baseline justify-between gap-2">
-                <span className="tabular-price text-3xl font-black tracking-tight sm:text-4xl">
-                  {formatIDR(totalSpentIDR)}
-                </span>
-                <span className="text-xs font-semibold text-indigo-100">
-                  {orders.length} Pesanan Selesai
-                </span>
-              </div>
+              <h2 className="mt-2 text-xl font-black tracking-tight sm:text-2xl">
+                Cek Nomor Invoice & Status Top-Up
+              </h2>
+              <p className="mt-1 text-xs text-indigo-100">
+                Masukkan Nomor Invoice, ID Game, atau Email untuk melihat status pembayaran QRIS maupun ShopeePay.
+              </p>
 
               {/* Invoice Search Input */}
               <div className="mt-4">
@@ -884,7 +897,7 @@ export function TopupApp() {
                   htmlFor="invoice-lookup-input"
                   className="mb-1.5 block text-xs font-bold text-indigo-100"
                 >
-                  Cari Nomor Invoice / ID Akun / Nomor WhatsApp
+                  Cari Nomor Invoice / ID Akun / Email
                 </label>
                 <div className="relative">
                   <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -900,37 +913,33 @@ export function TopupApp() {
               </div>
             </section>
 
-            {/* Supported Indonesian Payment Channels (Matching "Payment methods" in Reference Phone 3) */}
+            {/* Supported Official Payment Channels (Strictly QRIS & ShopeePay with Real Logos) */}
             <section aria-labelledby="payment-channels-heading">
               <div className="flex items-center justify-between">
                 <h2
                   id="payment-channels-heading"
                   className="text-sm font-extrabold text-slate-900 sm:text-base dark:text-white"
                 >
-                  Metode Pembayaran Lokal
+                  Metode Pembayaran Resmi
                 </h2>
                 <span className="text-xs font-bold text-[#5B4DFF] dark:text-indigo-400">
-                  Otomatis 24 Jam
+                  QRIS & ShopeePay
                 </span>
               </div>
 
               <div className="mt-3 space-y-2.5">
-                {PAYMENT_METHODS.slice(0, 3).map((pm, idx) => (
+                {PAYMENT_METHODS.map((pm, idx) => (
                   <div
                     key={pm.id}
                     className="flex items-center justify-between rounded-3xl bg-white p-4 shadow-xs dark:bg-slate-900"
                   >
                     <div className="flex items-center gap-3.5">
-                      <div
-                        className={`flex h-11 w-11 items-center justify-center rounded-full font-mono text-xs font-extrabold text-white ${
-                          idx === 0
-                            ? "bg-indigo-900"
-                            : idx === 1
-                            ? "bg-sky-600"
-                            : "bg-emerald-700"
-                        }`}
-                      >
-                        {pm.codeLabel}
+                      <div className="flex h-12 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-2xs">
+                        <img
+                          src={pm.logoImage}
+                          alt={pm.name}
+                          className="max-h-full max-w-full object-contain"
+                        />
                       </div>
                       <div>
                         <p className="text-sm font-extrabold text-slate-900 dark:text-white">
@@ -943,7 +952,7 @@ export function TopupApp() {
                     </div>
                     {idx === 0 ? (
                       <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-[#5B4DFF] dark:bg-indigo-950 dark:text-indigo-300">
-                        Default
+                        Scan Instan
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">

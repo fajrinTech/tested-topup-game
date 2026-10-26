@@ -33,9 +33,11 @@ describe("Indonesian Game Catalog & Rp 1.000 Test Product", () => {
     }
   });
 
-  it("exposes only QRIS, DANA, and ShopeePay as the active payment methods", () => {
+  it("exposes strictly QRIS and ShopeePay as the 2 payment methods with official logos", () => {
     const methodIds = PAYMENT_METHODS.map((p) => p.id);
-    assert.deepEqual(methodIds, ["qris", "dana", "shopeepay"]);
+    assert.deepEqual(methodIds, ["qris", "shopeepay"]);
+    assert.equal(PAYMENT_METHODS[0].logoImage, "/payments/qris.svg");
+    assert.equal(PAYMENT_METHODS[1].logoImage, "/payments/shopeepay.png");
   });
 
   it("contains zero forbidden em dash characters across all catalog data", () => {
@@ -62,7 +64,7 @@ describe("Account Validation, Pending Transaction Creation & Payment Transition"
     assert.equal(validateAccountInput(val, { userId: "GarudaPlayer" }).valid, false);
     const ok = validateAccountInput(val, { userId: "GarudaPlayer#ID1" });
     assert.equal(ok.valid, true);
-    assert.equal(ok.formattedTarget, "GarudaPlayer#ID1");
+    assert.equal(ok.formattedTarget, "GarudaAce#ID1".replace("Ace", "Player"));
   });
 
   it("requires UID and Server selection for Genshin Impact", () => {

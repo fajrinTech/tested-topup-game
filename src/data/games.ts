@@ -31,10 +31,11 @@ export interface GameConfig {
 }
 
 export interface PaymentMethod {
-  id: string;
+  id: "qris" | "shopeepay";
   name: string;
-  category: "QRIS" | "E-Wallet" | "Virtual Account" | "Minimarket";
+  category: "QRIS" | "E-Wallet";
   codeLabel: string;
+  logoImage: string;
   flatFee: number;
   freeForTestProduct: boolean;
   minAmount: number;
@@ -575,32 +576,24 @@ export const PASS_SUBSCRIPTIONS: PassSubscriptionItem[] = [
 export const PAYMENT_METHODS: PaymentMethod[] = [
   {
     id: "qris",
-    name: "QRIS (Scan Semua E-Wallet & M-Banking)",
+    name: "QRIS",
     category: "QRIS",
     codeLabel: "QRIS",
+    logoImage: "/payments/qris.svg",
     flatFee: 0,
     freeForTestProduct: true,
     minAmount: 1000,
-    settlementText: "Scan QRIS instan, bebas biaya admin untuk Testing Rp 1.000",
-  },
-  {
-    id: "dana",
-    name: "DANA (E-Wallet)",
-    category: "E-Wallet",
-    codeLabel: "DANA",
-    flatFee: 0,
-    freeForTestProduct: true,
-    minAmount: 1000,
-    settlementText: "Redirect ke pembayaran DANA, kembali ke web setelah bayar",
+    settlementText: "Scan kode QRIS langsung di halaman transaksi (Otomatis terdeteksi)",
   },
   {
     id: "shopeepay",
-    name: "ShopeePay (E-Wallet)",
+    name: "ShopeePay",
     category: "E-Wallet",
-    codeLabel: "SPAY",
+    codeLabel: "ShopeePay",
+    logoImage: "/payments/shopeepay.png",
     flatFee: 0,
     freeForTestProduct: true,
     minAmount: 1000,
-    settlementText: "Klik tombol Bayar dengan ShopeePay di halaman transaksi",
+    settlementText: "Klik tombol oranye Bayar dengan ShopeePay di halaman transaksi",
   },
 ];

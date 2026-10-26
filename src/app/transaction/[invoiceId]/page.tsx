@@ -383,22 +383,34 @@ export default function TransactionDetailPage() {
               /* ---------------- FLOW 1: QRIS SCAN & AUTO-WAIT ---------------- */
               <section className="rounded-3xl bg-white p-5 shadow-xs sm:p-6 dark:bg-slate-900">
                 <div className="flex flex-col items-center text-center">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-extrabold text-[#5B4DFF] dark:bg-indigo-950 dark:text-indigo-300">
-                    <QrCode className="h-4 w-4" />
-                    SCAN KODE QRIS NASIONAL
-                  </span>
-                  <h2 className="mt-2 text-lg font-extrabold text-slate-900 dark:text-white">
+                  <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3.5 py-1.5 shadow-2xs">
+                    <img
+                      src="/payments/qris.svg"
+                      alt="Logo QRIS Resmi"
+                      className="h-6 w-auto object-contain"
+                    />
+                    <span className="text-xs font-extrabold text-slate-900">
+                      STANDAR QRIS NASIONAL
+                    </span>
+                  </div>
+                  <h2 className="mt-3 text-lg font-extrabold text-slate-900 dark:text-white">
                     Scan QR untuk Membayar {formatIDR(order.total)}
                   </h2>
                   <p className="mt-1 max-w-md text-xs text-slate-600 dark:text-slate-400">
-                    Buka aplikasi M-Banking (BCA, BRI, Mandiri, BNI) atau E-Wallet (GoPay, OVO, DANA, ShopeePay), lalu scan kode QRIS di bawah ini.
+                    Buka aplikasi M-Banking (BCA, BRI, Mandiri, BNI) atau E-Wallet (ShopeePay, GoPay, OVO, DANA), lalu scan kode QRIS di bawah ini.
                   </p>
 
                   {/* QRIS Graphic Box */}
                   <div className="my-5 flex flex-col items-center rounded-3xl border-2 border-slate-200 bg-white p-5 shadow-xs dark:border-slate-700 dark:bg-slate-950">
-                    <div className="mb-2 flex w-full items-center justify-between text-[11px] font-extrabold text-slate-700 dark:text-slate-300">
-                      <span>QRIS STANDAR PEMBAYARAN NASIONAL</span>
-                      <span className="font-mono text-[#5B4DFF]">GPN</span>
+                    <div className="mb-2.5 flex w-full items-center justify-between">
+                      <img
+                        src="/payments/qris.svg"
+                        alt="QRIS"
+                        className="h-5 w-auto object-contain"
+                      />
+                      <span className="font-mono text-xs font-extrabold text-[#5B4DFF]">
+                        GPN
+                      </span>
                     </div>
                     <div className="flex h-52 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
                       <QrCode className="h-40 w-40 text-slate-900 dark:text-white" />
@@ -445,46 +457,45 @@ export default function TransactionDetailPage() {
                 </div>
               </section>
             ) : (
-              /* ---------------- FLOW 2: SHOPEEPAY / DANA REDIRECT + MANUAL RETURN GUIDE ---------------- */
+              /* ---------------- FLOW 2: SHOPEEPAY REDIRECT + MANUAL RETURN GUIDE ---------------- */
               <section className="space-y-4 rounded-3xl bg-white p-5 shadow-xs sm:p-6 dark:bg-slate-900">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <span
-                      className={`inline-block rounded-lg px-2.5 py-1 text-xs font-extrabold text-white ${
-                        isShopeePay ? "bg-[#EE4D2D]" : "bg-[#118EEA]"
-                      }`}
-                    >
-                      PEMBAYARAN {isShopeePay ? "SHOPEEPAY" : "DANA"}
-                    </span>
-                    <h2 className="mt-2 text-lg font-extrabold text-slate-900 dark:text-white">
-                      Lanjutkan Pembayaran dengan {isShopeePay ? "ShopeePay" : "DANA"}
+                    <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 shadow-2xs">
+                      <img
+                        src="/payments/shopeepay.png"
+                        alt="Logo ShopeePay Resmi"
+                        className="h-6 w-6 rounded-md object-contain"
+                      />
+                      <span className="text-xs font-extrabold text-[#EE4D2D]">
+                        PEMBAYARAN SHOPEEPAY
+                      </span>
+                    </div>
+                    <h2 className="mt-2.5 text-lg font-extrabold text-slate-900 dark:text-white">
+                      Lanjutkan Pembayaran dengan ShopeePay
                     </h2>
                     <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
-                      Klik tombol pembayaran di bawah untuk membuka halaman otorisasi saldo {isShopeePay ? "ShopeePay" : "DANA"}.
+                      Klik tombol oranye di bawah untuk membuka halaman pembayaran ShopeePay.
                     </p>
                   </div>
                 </div>
 
-                {/* Mandatory User Guidance Box Explaining No Return Button on E-Wallet Page */}
+                {/* Mandatory User Guidance Box Explaining No Return Button on ShopeePay Page */}
                 <div className="rounded-2xl border-2 border-amber-500/40 bg-amber-50/80 p-4 text-xs text-amber-950 dark:border-amber-600/40 dark:bg-amber-950/30 dark:text-amber-200">
                   <div className="flex items-center gap-2 font-extrabold text-amber-900 dark:text-amber-300">
                     <Info className="h-4 w-4 shrink-0 text-amber-600" />
-                    <span>Panduan Penting Pembayaran {isShopeePay ? "ShopeePay" : "DANA"}</span>
+                    <span>Panduan Penting Pembayaran ShopeePay</span>
                   </div>
                   <ol className="mt-2 list-decimal space-y-1.5 pl-4 leading-relaxed">
                     <li>
-                      Klik tombol{" "}
-                      <strong>
-                        Bayar dengan {isShopeePay ? "ShopeePay" : "DANA"}
-                      </strong>{" "}
-                      di bawah untuk membuka halaman web pembayaran.
+                      Klik tombol oranye <strong>Bayar dengan ShopeePay</strong> di bawah untuk membuka halaman pembayaran ShopeePay.
                     </li>
                     <li>
                       Selesaikan konfirmasi pembayaran sebesar{" "}
                       <strong>{formatIDR(order.total)}</strong> pada halaman tersebut.
                     </li>
                     <li>
-                      <strong>Penting:</strong> Halaman pembayaran {isShopeePay ? "ShopeePay" : "DANA"}{" "}
+                      <strong>Penting:</strong> Halaman pembayaran ShopeePay{" "}
                       <strong>tidak memiliki tombol kembali ke merchant</strong>. Setelah Anda menyelesaikan pembayaran di sana,{" "}
                       <strong>wajib kembali secara manual ke halaman/tab web NEXATOPUP ini</strong>{" "}
                       untuk melihat status top-up otomatis berubah menjadi Berhasil!
@@ -492,25 +503,26 @@ export default function TransactionDetailPage() {
                   </ol>
                 </div>
 
-                {/* Prominent Orange ShopeePay Button (or Blue DANA Button) */}
+                {/* Prominent Orange ShopeePay Button */}
                 <div className="pt-1">
                   <Link
-                    href={`/pay/${order.paymentId}/${order.invoiceId}`}
+                    href={`/pay/shopeepay/${order.invoiceId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-black text-white shadow-md transition-transform active:scale-[0.99] sm:text-base ${
-                      isShopeePay
-                        ? "bg-[#EE4D2D] hover:bg-[#D73211]"
-                        : "bg-[#118EEA] hover:bg-[#0D74BF]"
-                    }`}
+                    className="inline-flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-2xl bg-[#EE4D2D] px-6 py-3.5 text-sm font-black text-white shadow-md transition-transform hover:bg-[#D73211] active:scale-[0.99] sm:text-base"
                   >
+                    <img
+                      src="/payments/shopeepay.png"
+                      alt="ShopeePay"
+                      className="h-6 w-6 rounded-md bg-white p-0.5 object-contain"
+                    />
                     <span>
-                      Bayar dengan {isShopeePay ? "ShopeePay" : "DANA"} ({formatIDR(order.total)})
+                      Bayar dengan ShopeePay ({formatIDR(order.total)})
                     </span>
                     <ExternalLink className="h-4 w-4" />
                   </Link>
                   <p className="mt-2 text-center text-[11px] text-slate-500 dark:text-slate-400">
-                    Membuka halaman pembayaran {isShopeePay ? "ShopeePay" : "DANA"} di tab baru agar Anda mudah kembali ke halaman transaksi ini.
+                    Membuka halaman pembayaran ShopeePay di tab baru agar Anda mudah kembali ke halaman transaksi ini.
                   </p>
                 </div>
 
@@ -519,7 +531,7 @@ export default function TransactionDetailPage() {
                   <Loader2 className="h-5 w-5 shrink-0 animate-spin text-[#5B4DFF]" />
                   <div>
                     <p className="font-bold text-slate-900 dark:text-white">
-                      Menunggu Anda kembali setelah membayar di {isShopeePay ? "ShopeePay" : "DANA"}...
+                      Menunggu Anda kembali setelah membayar di ShopeePay...
                     </p>
                     <p className="mt-0.5">
                       Halaman ini memantau status pembayaran secara otomatis. Begitu Anda selesai bayar dan kembali ke tab ini, status akan langsung tervalidasi.
