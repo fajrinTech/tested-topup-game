@@ -20,6 +20,14 @@
   --border-subtle: #1e293b;
 }
 
+html,
+body {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
 body {
   background-color: var(--bg-canvas);
   color: var(--text-primary);

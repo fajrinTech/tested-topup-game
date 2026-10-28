@@ -63,6 +63,21 @@ export function TopupApp() {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
+
+    const preventPinch = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+    const preventGesture = (e: Event) => e.preventDefault();
+
+    document.addEventListener("touchmove", preventPinch, { passive: false });
+    document.addEventListener("gesturestart", preventGesture);
+
+    return () => {
+      document.removeEventListener("touchmove", preventPinch);
+      document.removeEventListener("gesturestart", preventGesture);
+    };
   }, []);
 
   useEffect(() => {

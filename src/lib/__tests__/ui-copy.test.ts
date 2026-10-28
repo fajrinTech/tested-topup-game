@@ -60,4 +60,13 @@ describe("Mobile-First Marketplace UI, Transaction Pages & Antislop Compliance",
     assert.equal(appCode.includes("pb-28"), true, "Expected pb-28 bottom nav safe space");
     assert.equal(modalCode.includes("Escape"), true, "Expected Escape key handler on modal");
   });
+
+  it("locks viewport scale and disables pinch zoom for native mobile app feel", () => {
+    const layoutCode = fs.readFileSync(
+      path.join(process.cwd(), "src/app/layout.tsx"),
+      "utf8"
+    );
+    assert.equal(layoutCode.includes("userScalable: false"), true, "Expected userScalable: false in viewport");
+    assert.equal(layoutCode.includes("maximumScale: 1"), true, "Expected maximumScale: 1 in viewport");
+  });
 });
