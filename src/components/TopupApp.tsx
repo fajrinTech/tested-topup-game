@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Compass,
   CreditCard,
-  Download,
   Flame,
   Gamepad2,
   Home,
@@ -59,52 +58,12 @@ export function TopupApp() {
   }>({ game: null });
 
   const [activeInvoice, setActiveInvoice] = useState<GuestOrder | null>(null);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstalledPwa, setIsInstalledPwa] = useState(false);
-  const [showInstallHint, setShowInstallHint] = useState(false);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
-
-    const standalone =
-      window.matchMedia?.("(display-mode: standalone)")?.matches ||
-      (window.navigator as any)?.standalone === true;
-    setIsInstalledPwa(Boolean(standalone));
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    const handleAppInstalled = () => {
-      setIsInstalledPwa(true);
-      setDeferredPrompt(null);
-      setShowInstallHint(false);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("appinstalled", handleAppInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", handleAppInstalled);
-    };
   }, []);
-
-  const handleInstallPwaClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      try {
-        await deferredPrompt.userChoice;
-      } catch {
-        // Ignore prompt dismissal.
-      }
-      setDeferredPrompt(null);
-      return;
-    }
-    setShowInstallHint((prev) => !prev);
-  };
 
   useEffect(() => {
     const loadFromStorage = () => {
@@ -213,27 +172,27 @@ export function TopupApp() {
       {/* Top Bar */}
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/95">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#5B4DFF] text-sm font-black tracking-tight text-white shadow-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#5B4DFF] text-sm font-black tracking-tight text-white shadow-xs">
               NX
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
                   NEXATOPUP
                 </span>
-                <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-bold text-white">
+                <span className="shrink-0 whitespace-nowrap rounded-full bg-emerald-700 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-white">
                   TANPA LOGIN
                 </span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
+              <p className="truncate text-xs text-slate-600 dark:text-slate-400">
                 Top-Up Game Indonesia • Instan 24 Jam
               </p>
             </div>
           </div>
 
           {/* Desktop Navigation Pills + Region & Theme Toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <nav
               aria-label="Navigasi Utama Desktop"
               className="hidden items-center gap-1 rounded-2xl bg-slate-100 p-1 md:flex dark:bg-slate-800"
@@ -277,18 +236,6 @@ export function TopupApp() {
               </span>
             </div>
 
-            {!isInstalledPwa && (
-              <button
-                type="button"
-                onClick={handleInstallPwaClick}
-                aria-label="Install Aplikasi NEXATOPUP"
-                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-2xl bg-[#5B4DFF] px-3 py-2 text-xs font-extrabold text-white shadow-xs hover:bg-[#4B3DE8]"
-              >
-                <Download className="h-3.5 w-3.5" />
-                <span>Install App</span>
-              </button>
-            )}
-
             <button
               type="button"
               onClick={() => setDarkMode((prev) => !prev)}
@@ -303,22 +250,6 @@ export function TopupApp() {
             </button>
           </div>
         </div>
-        {showInstallHint && !isInstalledPwa && (
-          <div className="border-t border-indigo-100 bg-indigo-50/90 px-4 py-2.5 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-            <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-              <p>
-                <strong>Cara Install di Android Chrome:</strong> Ketuk ikon titik tiga <strong>(⋮)</strong> di pojok kanan atas Chrome, lalu pilih <strong>Install aplikasi</strong> atau <strong>Tambahkan ke layar utama</strong>.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowInstallHint(false)}
-                className="min-h-[36px] shrink-0 rounded-xl bg-white px-2.5 py-1 font-bold text-[#5B4DFF] shadow-2xs dark:bg-slate-800 dark:text-indigo-400"
-              >
-                Mengerti
-              </button>
-            </div>
-          </div>
-        )}
       </header>
 
       {/* Main Responsive Container */}
@@ -344,71 +275,64 @@ export function TopupApp() {
               {/* Direct Top-Up Banner (No Wallet Balance / Pure QRIS & ShopeePay) */}
               <section
                 aria-label="Informasi Pembayaran Langsung QRIS & ShopeePay"
-                className="relative overflow-hidden rounded-3xl bg-[#5B4DFF] p-5 text-white shadow-md"
+                className="relative overflow-hidden rounded-3xl bg-[#5B4DFF] p-4.5 sm:p-5 text-white shadow-md"
               >
-                <div className="flex items-center justify-between text-xs font-semibold tracking-wider text-indigo-100 uppercase">
+                <div className="flex items-center justify-between text-[11px] font-semibold tracking-wider text-indigo-100 uppercase">
                   <span>DIRECT TOP-UP • TANPA LOGIN</span>
                   <span className="font-mono">INSTAN 24 JAM</span>
                 </div>
 
-                <h1 className="mt-2 text-xl font-black tracking-tight sm:text-2xl">
+                <h1 className="mt-2 text-lg sm:text-xl font-black tracking-tight leading-snug">
                   Top-Up Game Langsung via QRIS & ShopeePay
                 </h1>
 
-                <p className="mt-1.5 text-xs text-indigo-100 sm:text-sm">
+                <p className="mt-1 text-xs text-indigo-100 leading-relaxed">
                   Tanpa deposit saldo dompet dan tanpa registrasi akun. Pilih game, masukkan ID, lalu bayar langsung per transaksi.
                 </p>
 
-                {/* Official QRIS & ShopeePay Logo Pills */}
-                <div className="mt-3.5 flex flex-wrap items-center gap-2">
-                  <div className="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-2xs">
+                {/* Official QRIS & ShopeePay Logo Pills (Balanced 2-Column Grid) */}
+                <div className="mt-3.5 grid grid-cols-2 gap-2">
+                  <div className="flex h-10 items-center gap-2 rounded-xl bg-white px-2.5 shadow-2xs min-w-0">
                     <img
                       src="/payments/qris.svg"
                       alt="QRIS"
-                      className="h-5 w-auto object-contain"
+                      className="h-5 w-auto object-contain shrink-0"
                     />
-                    <span className="text-[11px] font-extrabold text-slate-900">
-                      Scan Semua Bank & E-Wallet
+                    <span className="truncate text-[11px] font-extrabold text-slate-900">
+                      Semua Bank & E-Wallet
                     </span>
                   </div>
-                  <div className="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-2xs">
+                  <div className="flex h-10 items-center gap-2 rounded-xl bg-white px-2.5 shadow-2xs min-w-0">
                     <img
                       src="/payments/shopeepay.png"
                       alt="ShopeePay"
-                      className="h-5 w-5 rounded-md object-contain"
+                      className="h-5 w-5 rounded-md object-contain shrink-0"
                     />
-                    <span className="text-[11px] font-extrabold text-slate-900">
-                      ShopeePay
+                    <span className="truncate text-[11px] font-extrabold text-slate-900">
+                      ShopeePay Instan
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-2">
+                {/* Balanced 2-Button Action Row (No Awkward Text Wrapping) */}
+                <div className="mt-3.5 grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() =>
                       handleOpenGame(GAMES[0], { itemId: GAMES[0].items[0].id })
                     }
-                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-extrabold text-[#5B4DFF] hover:bg-indigo-50"
+                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-2xl bg-white px-3 py-2 text-xs font-extrabold text-[#5B4DFF] shadow-xs hover:bg-indigo-50 active:scale-98 transition-transform"
                   >
-                    <Zap className="h-3.5 w-3.5" />
-                    Testing Produk
+                    <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500 shrink-0" />
+                    <span className="whitespace-nowrap">Uji Coba Rp 1.000</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("eksplor")}
-                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-2 text-xs font-bold text-white hover:bg-white/25"
+                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-2xl border border-white/30 bg-white/15 px-3 py-2 text-xs font-bold text-white hover:bg-white/25 active:scale-98 transition-transform"
                   >
-                    <Compass className="h-3.5 w-3.5" />
-                    Pilih Game
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("riwayat")}
-                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-2 text-xs font-bold text-white hover:bg-white/25"
-                  >
-                    <Receipt className="h-3.5 w-3.5" />
-                    Riwayat ({orders.length})
+                    <Compass className="h-3.5 w-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">Jelajahi Game</span>
                   </button>
                 </div>
               </section>
@@ -455,7 +379,7 @@ export function TopupApp() {
                       },
                     },
                     {
-                      label: "Cek Struk",
+                      label: "Struk",
                       icon: Receipt,
                       colorClass:
                         "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300",
@@ -475,7 +399,7 @@ export function TopupApp() {
                         >
                           <Icon className="h-5 w-5" />
                         </span>
-                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                        <span className="truncate text-[11px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                           {act.label}
                         </span>
                       </button>
@@ -514,22 +438,24 @@ export function TopupApp() {
                     Memuat riwayat transaksi perangkat...
                   </div>
                 ) : orders.length === 0 ? (
-                  <div className="mt-3 rounded-2xl border border-dashed border-slate-300 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Belum ada riwayat pembelian di perangkat ini.
-                    </p>
-                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                      Coba produk testing <strong>Rp 1.000</strong> tanpa daftar akun untuk melihat fitur pengisian ulang 1-klik di sini.
-                    </p>
+                  <div className="mt-2.5 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Belum ada riwayat pembelian di perangkat ini.
+                      </p>
+                      <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                        Coba produk testing Rp 1.000 tanpa daftar akun
+                      </p>
+                    </div>
                     <button
                       type="button"
                       onClick={() =>
                         handleOpenGame(GAMES[0], { itemId: GAMES[0].items[0].id })
                       }
-                      className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-indigo-50 px-3.5 py-2 text-xs font-bold text-[#5B4DFF] hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300"
+                      className="shrink-0 inline-flex min-h-[38px] items-center gap-1 rounded-xl bg-indigo-50 px-2.5 py-1.5 text-xs font-bold text-[#5B4DFF] hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300"
                     >
                       <RotateCcw className="h-3.5 w-3.5" />
-                      Uji Transaksi Pertama Rp 1.000
+                      <span className="whitespace-nowrap">Uji Rp 1.000</span>
                     </button>
                   </div>
                 ) : (
