@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Compass,
   CreditCard,
+  Download,
   Flame,
   Gamepad2,
   Home,
@@ -58,6 +59,52 @@ export function TopupApp() {
   }>({ game: null });
 
   const [activeInvoice, setActiveInvoice] = useState<GuestOrder | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalledPwa, setIsInstalledPwa] = useState(false);
+  const [showInstallHint, setShowInstallHint] = useState(false);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+
+    const standalone =
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      (window.navigator as any)?.standalone === true;
+    setIsInstalledPwa(Boolean(standalone));
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalledPwa(true);
+      setDeferredPrompt(null);
+      setShowInstallHint(false);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallPwaClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      try {
+        await deferredPrompt.userChoice;
+      } catch {
+        // Ignore prompt dismissal.
+      }
+      setDeferredPrompt(null);
+      return;
+    }
+    setShowInstallHint((prev) => !prev);
+  };
 
   useEffect(() => {
     const loadFromStorage = () => {
@@ -230,6 +277,18 @@ export function TopupApp() {
               </span>
             </div>
 
+            {!isInstalledPwa && (
+              <button
+                type="button"
+                onClick={handleInstallPwaClick}
+                aria-label="Install Aplikasi NEXATOPUP"
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-2xl bg-[#5B4DFF] px-3 py-2 text-xs font-extrabold text-white shadow-xs hover:bg-[#4B3DE8]"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>Install App</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setDarkMode((prev) => !prev)}
@@ -244,6 +303,22 @@ export function TopupApp() {
             </button>
           </div>
         </div>
+        {showInstallHint && !isInstalledPwa && (
+          <div className="border-t border-indigo-100 bg-indigo-50/90 px-4 py-2.5 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+              <p>
+                <strong>Cara Install di Android Chrome:</strong> Ketuk ikon titik tiga <strong>(⋮)</strong> di pojok kanan atas Chrome, lalu pilih <strong>Install aplikasi</strong> atau <strong>Tambahkan ke layar utama</strong>.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowInstallHint(false)}
+                className="min-h-[36px] shrink-0 rounded-xl bg-white px-2.5 py-1 font-bold text-[#5B4DFF] shadow-2xs dark:bg-slate-800 dark:text-indigo-400"
+              >
+                Mengerti
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Responsive Container */}

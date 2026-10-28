@@ -39,4 +39,29 @@ describe("Game Cover Art & Official Payment Logo Assets", () => {
       );
     }
   });
+
+  it("has valid PWA manifest, 192x192 & 512x512 PNG icons, and service worker for Android Chrome install", () => {
+    const manifestPath = path.join(process.cwd(), "public", "manifest.json");
+    assert.equal(fs.existsSync(manifestPath), true, "Missing public/manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+    assert.equal(manifest.display, "standalone");
+    assert.equal(manifest.start_url, "/");
+    assert.ok(Array.isArray(manifest.icons) && manifest.icons.length >= 2);
+
+    for (const icon of manifest.icons) {
+      const iconPath = path.join(process.cwd(), "public", icon.src.replace(/^\//, ""));
+      assert.equal(fs.existsSync(iconPath), true, `Missing PWA icon: ${iconPath}`);
+      const stat = fs.statSync(iconPath);
+      assert.ok(stat.size > 1000, `PWA icon too small: ${iconPath}`);
+    }
+
+    const swPath = path.join(process.cwd(), "public", "sw.js");
+    assert.equal(fs.existsSync(swPath), true, "Missing public/sw.js service worker");
+    const swContent = fs.readFileSync(swPath, "utf-8");
+    assert.ok(swContent.includes("fetch"), "Service worker must handle fetch event for Android PWA installability");
+
+    const layoutPath = path.join(process.cwd(), "src", "app", "layout.tsx");
+    const layoutContent = fs.readFileSync(layoutPath, "utf-8");
+    assert.ok(layoutContent.includes('manifest: "/manifest.json"'), "layout.tsx must link /manifest.json");
+  });
 });

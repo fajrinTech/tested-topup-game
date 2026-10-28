@@ -1,0 +1,39 @@
+{
+  "id": "/",
+  "name": "NEXATOPUP - Top-Up Game Instan Indonesia",
+  "short_name": "NEXATOPUP",
+  "description": "Platform top-up game regional Indonesia (Mobile Legends, Free Fire, PUBG Mobile, Genshin Impact, Honor of Kings, Valorant) instan tanpa login via QRIS & ShopeePay.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0F19",
+  "theme_color": "#5B4DFF",
+  "categories": ["games", "shopping", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
