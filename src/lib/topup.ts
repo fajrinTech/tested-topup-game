@@ -16,6 +16,18 @@ export interface ValidationResult {
 
 export type PaymentFlowType = "qris_scan" | "ewallet_redirect";
 
+export interface OrderBrandConfig {
+  tier: "monthly" | "payg";
+  is_whitelabel: boolean;
+  logo_url: string | null;
+  badge_style: "squircle" | "capsule" | "clean";
+  dot_style: "square" | "dots" | "rounded" | "diamond";
+  eye_style: "square" | "rounded" | "circle";
+  color_dark: string;
+  store_name: string;
+  watermark: string | null;
+}
+
 export interface GuestOrder {
   invoiceId: string;
   gameSlug: string;
@@ -45,6 +57,56 @@ export interface GuestOrder {
   merchantName?: string;
   merchantNmid?: string;
   expiresAt?: string;
+  brand?: OrderBrandConfig | null;
+}
+
+export function normalizeOrderBrand(
+  brand?: Partial<OrderBrandConfig> | null
+): OrderBrandConfig {
+  if (!brand || !brand.is_whitelabel) {
+    return {
+      tier: "payg",
+      is_whitelabel: false,
+      logo_url:
+        brand?.logo_url || "https://ostrapay.pages.dev/logo-ostrapay-icon.png",
+      badge_style: "squircle",
+      dot_style: "square",
+      eye_style: "square",
+      color_dark: "#0B2540",
+      store_name: "OSTRAPAY",
+      watermark: brand?.watermark || "Powered by OstraPay",
+    };
+  }
+
+  const badgeStyle =
+    brand.badge_style === "capsule" ||
+    brand.badge_style === "clean" ||
+    brand.badge_style === "squircle"
+      ? brand.badge_style
+      : "squircle";
+
+  const logoUrl =
+    badgeStyle === "clean" ? null : brand.logo_url ? brand.logo_url : null;
+
+  return {
+    tier: "monthly",
+    is_whitelabel: true,
+    logo_url: logoUrl,
+    badge_style: logoUrl ? badgeStyle : "clean",
+    dot_style:
+      brand.dot_style === "dots" ||
+      brand.dot_style === "rounded" ||
+      brand.dot_style === "diamond"
+        ? brand.dot_style
+        : "square",
+    eye_style:
+      brand.eye_style === "rounded" || brand.eye_style === "circle"
+        ? brand.eye_style
+        : "square",
+    color_dark: brand.color_dark || "#0B2540",
+    store_name: brand.store_name || "Merchant",
+    watermark: null,
+  };
 }
 
 export function formatIDR(amount: number): string {

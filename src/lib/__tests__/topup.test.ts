@@ -6,6 +6,7 @@ import {
   createGuestOrder,
   formatIDR,
   markOrderPaid,
+  normalizeOrderBrand,
   searchOrders,
   simulateAccountNickname,
   validateAccountInput,
@@ -107,5 +108,70 @@ describe("Account Validation, Pending Transaction Creation & Payment Transition"
     const updatedList = markOrderPaid([order], order.invoiceId);
     assert.equal(updatedList[0].status, "Completed");
     assert.equal(Boolean(updatedList[0].paidAt), true);
+  });
+});
+
+
+describe("OstraPay Tier-Based QRIS Brand Normalization", () => {
+  it("defaults missing or PAYG brand to OstraPay watermark configuration", () => {
+    const fallback = normalizeOrderBrand(null);
+    assert.equal(fallback.tier, "payg");
+    assert.equal(fallback.is_whitelabel, false);
+    assert.equal(
+      fallback.logo_url,
+      "https://ostrapay.pages.dev/logo-ostrapay-icon.png"
+    );
+    assert.equal(fallback.badge_style, "squircle");
+    assert.equal(fallback.color_dark, "#0B2540");
+    assert.equal(fallback.watermark, "Powered by OstraPay");
+  });
+
+  it("preserves Monthly white-label custom logo, styling, and clean mode", () => {
+    const custom = normalizeOrderBrand({
+      tier: "monthly",
+      is_whitelabel: true,
+      logo_url: "data:image/png;base64,iVBORw0KGgo=",
+      badge_style: "capsule",
+      dot_style: "dots",
+      eye_style: "rounded",
+      color_dark: "#059669",
+      store_name: "ZEFF TOPUP",
+      watermark: null,
+    });
+    assert.equal(custom.tier, "monthly");
+    assert.equal(custom.is_whitelabel, true);
+    assert.equal(custom.logo_url, "data:image/png;base64,iVBORw0KGgo=");
+    assert.equal(custom.badge_style, "capsule");
+    assert.equal(custom.dot_style, "dots");
+    assert.equal(custom.eye_style, "rounded");
+    assert.equal(custom.color_dark, "#059669");
+    assert.equal(custom.store_name, "ZEFF TOPUP");
+    assert.equal(custom.watermark, null);
+
+    const cleanMonthly = normalizeOrderBrand({
+      tier: "monthly",
+      is_whitelabel: true,
+      logo_url: null,
+      badge_style: "clean",
+      store_name: "ZEFF TOPUP",
+    });
+    assert.equal(cleanMonthly.is_whitelabel, true);
+    assert.equal(cleanMonthly.logo_url, null);
+    assert.equal(cleanMonthly.badge_style, "clean");
+    assert.equal(cleanMonthly.watermark, null);
+  });
+});
+
+
+describe("ASPI Level H Badge Bounding Box Compliance", () => {
+  it("keeps center badge width <= 22% of canvas size", async () => {
+    const { computeBadgeBox } = await import("../qris-renderer.ts");
+    const box = computeBadgeBox(600, false);
+    assert.ok(box.badgeW <= 600 * 0.22);
+    assert.equal(box.badgeH, box.badgeW);
+
+    const capsuleBox = computeBadgeBox(600, true);
+    assert.ok(capsuleBox.badgeW <= 600 * 0.22);
+    assert.ok(capsuleBox.badgeH <= 600 * 0.24);
   });
 });

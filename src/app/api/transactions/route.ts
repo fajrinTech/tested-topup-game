@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { GuestOrder } from "@/lib/topup";
+import {
+  normalizeOrderBrand,
+  type GuestOrder,
+  type OrderBrandConfig,
+} from "@/lib/topup";
 
 const memoryOrders = new Map<string, GuestOrder>();
 
@@ -44,19 +48,29 @@ export async function GET(request: NextRequest) {
               status?: string;
               paid_at?: string | null;
               expires_at?: string;
+              brand?: Partial<OrderBrandConfig> | null;
             };
           };
 
           if (ostraJson.success && ostraJson.data) {
             const isPaid = ostraJson.data.status === "paid";
-            if (order && isPaid) {
+            if (order) {
               order = {
                 ...order,
-                status: "Completed",
-                paidAt:
-                  order.paidAt ||
-                  ostraJson.data.paid_at ||
-                  new Date().toISOString(),
+                brand:
+                  order.brand ||
+                  (ostraJson.data.brand
+                    ? normalizeOrderBrand(ostraJson.data.brand)
+                    : undefined),
+                ...(isPaid
+                  ? {
+                      status: "Completed",
+                      paidAt:
+                        order.paidAt ||
+                        ostraJson.data.paid_at ||
+                        new Date().toISOString(),
+                    }
+                  : {}),
               };
               memoryOrders.set(invoiceId, order);
             }
@@ -135,6 +149,7 @@ export async function POST(request: NextRequest) {
               amount?: number;
               qris_string?: string;
               payment_link?: string | null;
+              brand?: Partial<OrderBrandConfig> | null;
               merchant?: {
                 name?: string;
                 nmid?: string;
@@ -156,6 +171,7 @@ export async function POST(request: NextRequest) {
               merchantNmid:
                 ostraJson.data.merchant?.nmid || "ID1026593811353",
               expiresAt: ostraJson.data.expires_at || order.expiresAt,
+              brand: normalizeOrderBrand(ostraJson.data.brand),
             };
           } else {
             return NextResponse.json(
@@ -179,6 +195,11 @@ export async function POST(request: NextRequest) {
             { status: 502 }
           );
         }
+      } else {
+        enrichedOrder = {
+          ...enrichedOrder,
+          brand: normalizeOrderBrand(order.brand),
+        };
       }
 
       memoryOrders.set(enrichedOrder.invoiceId, enrichedOrder);

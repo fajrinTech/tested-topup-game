@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import QRCode from "qrcode";
+import { renderOrderQrisDataUrl } from "@/lib/qris-renderer";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -86,6 +86,7 @@ export default function TransactionDetailPage() {
             merchantName: localFound.merchantName || serverOrder.merchantName,
             merchantNmid: localFound.merchantNmid || serverOrder.merchantNmid,
             expiresAt: localFound.expiresAt || serverOrder.expiresAt,
+            brand: localFound.brand || serverOrder.brand,
           };
         }
       }
@@ -136,17 +137,18 @@ export default function TransactionDetailPage() {
       setQrDataUrl(null);
       return;
     }
-    QRCode.toDataURL(order.qrisString, {
-      width: 240,
-      margin: 2,
-      color: {
-        dark: "#0F172A",
-        light: "#FFFFFF",
-      },
-    })
-      .then((url) => setQrDataUrl(url))
-      .catch(() => setQrDataUrl(null));
-  }, [order?.qrisString]);
+    let active = true;
+    renderOrderQrisDataUrl(order.qrisString, order.brand)
+      .then((url) => {
+        if (active) setQrDataUrl(url || null);
+      })
+      .catch(() => {
+        if (active) setQrDataUrl(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [order?.qrisString, order?.brand]);
 
   useEffect(() => {
     if (!order || order.status === "Completed") return;
@@ -452,11 +454,20 @@ export default function TransactionDetailPage() {
                       )}
                     </div>
                     <p className="mt-2.5 text-xs font-extrabold text-slate-900 dark:text-white">
-                      Merchant: {order.merchantName || "Zeff"}
+                      Merchant:{" "}
+                      {order.brand?.is_whitelabel
+                        ? order.brand.store_name || order.merchantName || "Zeff"
+                        : order.merchantName || "Zeff"}
                     </p>
                     <p className="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-400">
                       NMID: {order.merchantNmid || "ID1026593811353"} • {order.invoiceId}
                     </p>
+                    {!order.brand?.is_whitelabel && (
+                      <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[10px] font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                        <Sparkles className="h-3 w-3 text-[#5B4DFF]" />
+                        {order.brand?.watermark || "Powered by OstraPay"}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex w-full max-w-md items-center gap-3 rounded-2xl bg-slate-50 p-3.5 text-left text-xs text-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
