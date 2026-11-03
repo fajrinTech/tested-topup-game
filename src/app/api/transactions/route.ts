@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
   if (invoiceId) {
     let order = memoryOrders.get(invoiceId) || null;
 
-    if (hasGatewayKey && (!order || order.status !== "Completed")) {
+    if (
+      hasGatewayKey &&
+      (!order || (order.status !== "Completed" && order.status !== "Expired"))
+    ) {
       try {
         const ostraRes = await fetch(
           `${baseUrl}/api/v1/payments/${encodeURIComponent(invoiceId)}`,
@@ -54,9 +57,11 @@ export async function GET(request: NextRequest) {
 
           if (ostraJson.success && ostraJson.data) {
             const isPaid = ostraJson.data.status === "paid";
+            const isExpired = ostraJson.data.status === "expired";
             if (order) {
               order = {
                 ...order,
+                expiresAt: order.expiresAt || ostraJson.data.expires_at,
                 brand:
                   order.brand ||
                   (ostraJson.data.brand
@@ -70,6 +75,8 @@ export async function GET(request: NextRequest) {
                         ostraJson.data.paid_at ||
                         new Date().toISOString(),
                     }
+                  : isExpired && order.status !== "Completed"
+                  ? { status: "Expired" }
                   : {}),
               };
               memoryOrders.set(invoiceId, order);
@@ -88,10 +95,26 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    if (
+      !hasGatewayKey &&
+      order &&
+      order.status === "Pending" &&
+      order.expiresAt &&
+      new Date(order.expiresAt).getTime() <= Date.now()
+    ) {
+      order = { ...order, status: "Expired" };
+      memoryOrders.set(invoiceId, order);
+    }
+
     return NextResponse.json({
       ok: true,
       gatewayConfigured: hasGatewayKey,
-      gatewayStatus: order?.status === "Completed" ? "paid" : "pending",
+      gatewayStatus:
+        order?.status === "Completed"
+          ? "paid"
+          : order?.status === "Expired"
+          ? "expired"
+          : "pending",
       order,
     });
   }

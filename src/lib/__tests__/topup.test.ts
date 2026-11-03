@@ -5,6 +5,7 @@ import {
   calculateCheckoutTotal,
   createGuestOrder,
   formatIDR,
+  markOrderExpired,
   markOrderPaid,
   normalizeOrderBrand,
   searchOrders,
@@ -108,6 +109,25 @@ describe("Account Validation, Pending Transaction Creation & Payment Transition"
     const updatedList = markOrderPaid([order], order.invoiceId);
     assert.equal(updatedList[0].status, "Completed");
     assert.equal(Boolean(updatedList[0].paidAt), true);
+  });
+
+  it("transitions Pending order to Expired via markOrderExpired without downgrading Completed orders", () => {
+    const mlbb = GAMES.find((g) => g.slug === "mobile-legends")!;
+    const qris = PAYMENT_METHODS.find((p) => p.id === "qris")!;
+    const pendingOrder = createGuestOrder({
+      game: mlbb,
+      item: mlbb.items[0],
+      payment: qris,
+      targetAccount: "11223344 (1234)",
+      nickname: "NusantaraPro_344",
+    });
+    const completedOrder = markOrderPaid([pendingOrder], pendingOrder.invoiceId)[0];
+
+    const expiredList = markOrderExpired([pendingOrder], pendingOrder.invoiceId);
+    assert.equal(expiredList[0].status, "Expired");
+
+    const preservedCompleted = markOrderExpired([completedOrder], completedOrder.invoiceId);
+    assert.equal(preservedCompleted[0].status, "Completed");
   });
 });
 

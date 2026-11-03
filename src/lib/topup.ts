@@ -48,7 +48,7 @@ export interface GuestOrder {
   total: number;
   email?: string;
   whatsapp?: string;
-  status: "Completed" | "Pending";
+  status: "Completed" | "Pending" | "Expired";
   createdAt: string;
   paidAt?: string;
   isTestProduct: boolean;
@@ -270,6 +270,14 @@ export function markOrderPaid(orders: GuestOrder[], invoiceId: string): GuestOrd
   return orders.map((order) =>
     order.invoiceId === invoiceId
       ? { ...order, status: "Completed", paidAt: order.paidAt || now }
+      : order
+  );
+}
+
+export function markOrderExpired(orders: GuestOrder[], invoiceId: string): GuestOrder[] {
+  return orders.map((order) =>
+    order.invoiceId === invoiceId && order.status === "Pending"
+      ? { ...order, status: "Expired" }
       : order
   );
 }

@@ -48,6 +48,7 @@ export function InvoiceModal({
   });
 
   const isCompleted = order.status === "Completed";
+  const isExpired = order.status === "Expired";
 
   return (
     <div
@@ -94,6 +95,11 @@ export function InvoiceModal({
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-2.5 py-0.5 text-xs font-semibold text-white">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Berhasil
+              </span>
+            ) : isExpired ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+                <Clock className="h-3.5 w-3.5" />
+                Kedaluwarsa
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-600 px-2.5 py-0.5 text-xs font-semibold text-white">
@@ -189,7 +195,7 @@ export function InvoiceModal({
         </dl>
 
         <div className="mt-5 grid grid-cols-2 gap-2.5">
-          {!isCompleted ? (
+          {!isCompleted && !isExpired ? (
             <Link
               href={`/transaction/${order.invoiceId}`}
               className="col-span-2 inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-2xl bg-[#5B4DFF] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#4B3DE8]"

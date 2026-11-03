@@ -22,6 +22,7 @@ import {
 import {
   STORAGE_KEY,
   formatIDR,
+  markOrderExpired,
   markOrderPaid,
   type GuestOrder,
 } from "@/lib/topup";
@@ -63,6 +64,9 @@ export default function TransactionDetailPage() {
         const isPaidOnGateway =
           data?.gatewayStatus === "paid" ||
           serverOrder?.status === "Completed";
+        const isExpiredOnGateway =
+          data?.gatewayStatus === "expired" ||
+          serverOrder?.status === "Expired";
 
         if (isPaidOnGateway && localFound && localFound.status !== "Completed") {
           const raw = localStorage.getItem(STORAGE_KEY);
@@ -73,11 +77,32 @@ export default function TransactionDetailPage() {
             updatedList.find((o) => o.invoiceId === invoiceId) ||
             serverOrder ||
             localFound;
+        } else if (
+          isExpiredOnGateway &&
+          localFound &&
+          localFound.status === "Pending"
+        ) {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const list: GuestOrder[] = raw ? JSON.parse(raw) : [];
+          const updatedList = markOrderExpired(list, invoiceId);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+          localFound =
+            updatedList.find((o) => o.invoiceId === invoiceId) ||
+            serverOrder ||
+            localFound;
         } else if (!localFound && serverOrder) {
           localFound = serverOrder;
         } else if (localFound && serverOrder) {
           localFound = {
             ...localFound,
+            status:
+              localFound.status === "Completed"
+                ? "Completed"
+                : serverOrder.status === "Completed"
+                ? "Completed"
+                : serverOrder.status === "Expired"
+                ? "Expired"
+                : localFound.status,
             qrisString: localFound.qrisString || serverOrder.qrisString,
             paymentLink:
               localFound.paymentLink !== undefined
@@ -111,6 +136,10 @@ export default function TransactionDetailPage() {
 
   useEffect(() => {
     syncOrderFromStorageAndServer();
+  }, [syncOrderFromStorageAndServer]);
+
+  useEffect(() => {
+    if (order?.status === "Completed" || order?.status === "Expired") return;
 
     const interval = setInterval(() => {
       syncOrderFromStorageAndServer();
@@ -130,10 +159,14 @@ export default function TransactionDetailPage() {
       window.removeEventListener("focus", handleStorageOrFocus);
       document.removeEventListener("visibilitychange", handleStorageOrFocus);
     };
-  }, [syncOrderFromStorageAndServer]);
+  }, [order?.status, syncOrderFromStorageAndServer]);
 
   useEffect(() => {
-    if (!order?.qrisString) {
+    if (
+      !order?.qrisString ||
+      order.status === "Completed" ||
+      order.status === "Expired"
+    ) {
       setQrDataUrl(null);
       return;
     }
@@ -148,10 +181,29 @@ export default function TransactionDetailPage() {
     return () => {
       active = false;
     };
-  }, [order?.qrisString, order?.brand]);
+  }, [order?.qrisString, order?.brand, order?.status]);
 
   useEffect(() => {
-    if (!order || order.status === "Completed") return;
+    if (!order || order.status === "Completed" || order.status === "Expired") {
+      return;
+    }
+
+    let handledZero = false;
+    const expireLocallyIfStillPending = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const list: GuestOrder[] = raw ? JSON.parse(raw) : [];
+        const current = list.find((o) => o.invoiceId === order.invoiceId);
+        if (current?.status === "Completed") return;
+        const updatedList = markOrderExpired(list, order.invoiceId);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+      } catch {
+        // Ignore storage write errors.
+      }
+      setOrder((prev) =>
+        prev && prev.status === "Pending" ? { ...prev, status: "Expired" } : prev
+      );
+    };
 
     const updateTimer = () => {
       if (order.expiresAt) {
@@ -160,15 +212,30 @@ export default function TransactionDetailPage() {
           Math.floor((new Date(order.expiresAt).getTime() - Date.now()) / 1000)
         );
         setCountdownSec(diff);
+        if (diff === 0 && !handledZero) {
+          handledZero = true;
+          syncOrderFromStorageAndServer().finally(() => {
+            expireLocallyIfStillPending();
+          });
+        }
       } else {
-        setCountdownSec((prev) => (prev > 0 ? prev - 1 : 0));
+        setCountdownSec((prev) => {
+          const next = prev > 0 ? prev - 1 : 0;
+          if (next === 0 && !handledZero) {
+            handledZero = true;
+            syncOrderFromStorageAndServer().finally(() => {
+              expireLocallyIfStillPending();
+            });
+          }
+          return next;
+        });
       }
     };
 
     updateTimer();
     const timer = setInterval(updateTimer, 1000);
     return () => clearInterval(timer);
-  }, [order]);
+  }, [order, syncOrderFromStorageAndServer]);
 
   const handleCopyInvoice = async () => {
     if (!order) return;
@@ -223,6 +290,7 @@ export default function TransactionDetailPage() {
   }
 
   const isCompleted = order.status === "Completed";
+  const isExpired = order.status === "Expired";
   const isQris = order.paymentId === "qris";
   const shopeeTargetHref =
     order.paymentLink || `/pay/shopeepay/${order.invoiceId}`;
@@ -245,13 +313,22 @@ export default function TransactionDetailPage() {
             </span>
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold text-white ${
-                isCompleted ? "bg-emerald-700" : "bg-amber-600"
+                isCompleted
+                  ? "bg-emerald-700"
+                  : isExpired
+                  ? "bg-slate-600"
+                  : "bg-amber-600"
               }`}
             >
               {isCompleted ? (
                 <>
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Lunas & Terkirim
+                </>
+              ) : isExpired ? (
+                <>
+                  <Clock className="h-3.5 w-3.5" />
+                  Kedaluwarsa
                 </>
               ) : (
                 <>
@@ -376,6 +453,62 @@ export default function TransactionDetailPage() {
                 className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-2xl bg-[#5B4DFF] px-5 py-3 text-sm font-extrabold text-white hover:bg-[#4B3DE8]"
               >
                 Top-Up Lagi / Kembali ke Beranda
+              </Link>
+            </div>
+          </section>
+        ) : isExpired ? (
+          /* ======================== STATE C: EXPIRED (15-MINUTE TIMEOUT) ======================== */
+          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-md sm:p-6 dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex flex-col items-center text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-600 text-white shadow-sm">
+                <Clock className="h-9 w-9" />
+              </div>
+              <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                BATAS WAKTU 15 MENIT BERAKHIR
+              </span>
+              <h1 className="mt-2 text-xl font-black text-slate-900 sm:text-2xl dark:text-white">
+                Waktu Pembayaran Habis (15 Menit)
+              </h1>
+              <p className="mt-1 max-w-md text-xs text-slate-600 sm:text-sm dark:text-slate-400">
+                Invoice <code className="font-mono font-bold">{order.invoiceId}</code> telah melewati batas waktu pembayaran 15 menit pada sistem OstraPay dan otomatis dibatalkan. Jangan lanjutkan transfer pada tagihan ini.
+              </p>
+            </div>
+
+            <div className="mt-6 rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60">
+              <dl className="space-y-2 text-xs sm:text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-slate-600 dark:text-slate-400">Invoice</dt>
+                  <dd className="font-mono font-bold text-slate-900 dark:text-white">
+                    {order.invoiceId}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-slate-600 dark:text-slate-400">Produk</dt>
+                  <dd className="font-bold text-slate-900 dark:text-white">
+                    {order.gameName} - {order.itemName}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-slate-600 dark:text-slate-400">ID Tujuan</dt>
+                  <dd className="font-mono font-bold text-slate-900 dark:text-white">
+                    {order.targetAccount} ({order.nickname})
+                  </dd>
+                </div>
+                <div className="flex justify-between border-t border-slate-200 pt-2 text-sm font-extrabold sm:text-base dark:border-slate-700">
+                  <span>Nominal Tagihan</span>
+                  <span className="tabular-price text-slate-700 dark:text-slate-300">
+                    {formatIDR(order.total)}
+                  </span>
+                </div>
+              </dl>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+              <Link
+                href={order.gameSlug ? `/${order.gameSlug}` : "/"}
+                className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-2xl bg-[#5B4DFF] px-5 py-3 text-sm font-extrabold text-white hover:bg-[#4B3DE8]"
+              >
+                Buat Pesanan Baru
               </Link>
             </div>
           </section>
